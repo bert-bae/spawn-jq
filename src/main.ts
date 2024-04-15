@@ -1,6 +1,10 @@
-import { spawn } from "child_process";
 import express, { Express, Request, Response } from "express";
+// import { run } from "./utils/exec";
 import bodyParser from "body-parser";
+import util from "node:util";
+import { jq } from "./jq";
+
+// const exec = util.promisify(require("node:child_process").exec);
 
 const app: Express = express();
 app.use(bodyParser.json());
@@ -8,33 +12,17 @@ const port = 9000;
 
 type JqBody = { json: Record<string, unknown>; jq: string };
 
-app.post("/jq", (req: Request<{}, {}, JqBody>, res: Response) => {
+app.post("/jq", async (req: Request<{}, {}, JqBody>, res: Response) => {
   const { jq: query, json } = req.body;
-  const curl = spawn(
-    "curl",
-    ["https://api.github.com/repos/jqlang/jq/commits?per_page=5'"],
-    {
-      stdio: ["inherit", "pipe", "inherit"],
-    }
-  );
-  const jq = spawn("jq", [query], { stdio: ["pipe", "inherit", "pipe"] });
-
-  curl.stdout.pipe(jq.stdin);
-
-  // @ts-ignore
-  jq.stdout.on("data", (data) => {
-    console.log(`stdout: ${data}`);
-    res.send(data);
-  });
-
-  jq.stderr.on("data", (data) => {
-    console.error(`stderr: ${data}`);
-    res.send(data);
-  });
-
-  jq.on("close", (code) => {
-    console.log(`child process exited with code ${code}`);
-  });
+  jq(query, json, { slurp: false, sort: true, raw: false }, { output: "json" })
+    .then((result) => {
+      res.send(result);
+    })
+    .catch((error) => {
+      res.status(500).send({
+        message: error.message,
+      });
+    });
 });
 
 app.listen(port, () => {
