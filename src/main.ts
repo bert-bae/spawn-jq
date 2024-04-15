@@ -10,7 +10,12 @@ type JqBody = { json: Record<string, unknown>; jq: string };
 
 app.post("/jq", async (req: Request<{}, {}, JqBody>, res: Response) => {
   const { jq: query, json } = req.body;
-  jq(query, json, { slurp: false, sort: true, raw: false }, { output: "json" })
+  jq(
+    query,
+    json,
+    { slurp: false, sort: true, raw: false },
+    { output: "json", timeout: 2000 }
+  )
     .then((result) => {
       res.send(result);
     })

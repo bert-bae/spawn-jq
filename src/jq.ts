@@ -7,6 +7,7 @@ interface ProcessOptions {
   cwd?: string;
   detached?: boolean;
   output: "raw" | "json";
+  timeout?: number;
 }
 
 type JqOptions = {
@@ -57,6 +58,11 @@ export function jq(query, jsonData, jqOpts: JqOptions, opts: ProcessOptions) {
       [...createJqOptionFlags(jqOpts), query],
       spawnOptions
     );
+    const spawnTimeout = setTimeout(() => {
+      jqProcess.kill();
+      console.log("timed out");
+    }, opts.timeout);
+
     let stderr = "";
     let output = "";
 
@@ -74,20 +80,20 @@ export function jq(query, jsonData, jqOpts: JqOptions, opts: ProcessOptions) {
     // Handling process completion
     jqProcess.on("close", (code) => {
       if (code !== 0) {
-        console.log(code);
         reject(
           `jq process exited with code ${code}. ${
             exitCodes[code] || "Unhandled error"
           }`
         );
       } else {
-        console.log(output);
+        console.log(">>", output);
         try {
           resolve(opts.output === "json" ? tryParse(output) : output);
         } catch (err) {
           reject(err);
         }
       }
+      clearTimeout(spawnTimeout);
     });
 
     // Sending JSON data to jq process
