@@ -1,10 +1,6 @@
 import express, { Express, Request, Response } from "express";
-// import { run } from "./utils/exec";
 import bodyParser from "body-parser";
-import util from "node:util";
 import { jq } from "./jq";
-
-// const exec = util.promisify(require("node:child_process").exec);
 
 const app: Express = express();
 app.use(bodyParser.json());
