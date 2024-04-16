@@ -53,6 +53,7 @@ export function jq(query, jsonData, jqOpts: JqOptions, opts: ProcessOptions) {
       cwd: opts.cwd,
       detached: opts.detached,
     };
+    console.log([...createJqOptionFlags(jqOpts), query].join(" "));
     const jqProcess = spawn(
       "jq",
       [...createJqOptionFlags(jqOpts), query],
