@@ -1,4 +1,4 @@
-const { spawn } = require("child_process");
+import { spawn } from "child_process";
 
 // 5MB - Set this limit as another measure to limit the amount of data we can process using `jq` so we don't have runaway processes.
 const MAX_BUFFER = 1024 * 1024 * 5;
@@ -53,22 +53,17 @@ export function jq(query, jsonData, jqOpts: JqOptions, opts: ProcessOptions) {
       cwd: opts.cwd,
       detached: opts.detached,
     };
-    console.log([...createJqOptionFlags(jqOpts), query].join(" "));
-    const jqProcess = spawn(
-      "jq",
-      [...createJqOptionFlags(jqOpts), query],
-      spawnOptions
-    );
-    const spawnTimeout = setTimeout(() => {
-      jqProcess.kill();
-      console.log("timed out");
-    }, opts.timeout);
+
+    const jqProcess = spawn("jq", [...createJqOptionFlags(jqOpts), query], {
+      ...spawnOptions,
+      timeout: opts.timeout,
+    });
 
     let stderr = "";
     let output = "";
 
     // Handling output
-    jqProcess.stdout.setDefaultEncoding("utf-8");
+    jqProcess.stdout.setEncoding("utf-8");
     jqProcess.stdout.on("data", (data) => {
       output += data.toString();
     });
@@ -87,14 +82,13 @@ export function jq(query, jsonData, jqOpts: JqOptions, opts: ProcessOptions) {
           }`
         );
       } else {
-        console.log(">>", output);
+        console.log(`Process closed with code ${code}`);
         try {
           resolve(opts.output === "json" ? tryParse(output) : output);
         } catch (err) {
           reject(err);
         }
       }
-      clearTimeout(spawnTimeout);
     });
 
     // Sending JSON data to jq process
